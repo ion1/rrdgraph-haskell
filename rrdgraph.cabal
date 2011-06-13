@@ -1,0 +1,49 @@
+Name:           rrdgraph
+Version:        0.0.1
+Synopsis:       Haskell DSL for rendering RRD graphs using RRDtool
+Homepage:       https://github.com/ion1/rrdgraph-haskell
+License:        ISC
+License-File:   COPYING
+Author:         Johan Kiviniemi
+Maintainer:     devel@johan.kiviniemi.name
+Stability:      Experimental
+Category:       Data, Graphics, Graphs
+Build-Type:     Simple
+Cabal-Version:  >=1.2
+Description:    TODO
+
+Flag tests
+  Description:  Build the test suite
+  Default:      False
+
+Library
+  Exposed-Modules:  Data.RRDGraph.State
+
+  Build-Depends:    base == 4.*,
+                    containers > 0.3 && < 0.5,
+                    data-default == 0.2.*,
+                    fclabels == 0.11.*,
+                    mtl == 2.*,
+                    transformers == 0.2.*
+
+  if flag(tests)
+    Build-Depends:    HUnit == 1.2.*,
+                      QuickCheck == 2.4.*,
+                      test-framework == 0.4.*,
+                      test-framework-hunit == 0.2.*,
+                      test-framework-quickcheck2 == 0.2.*,
+                      test-framework-th == 0.2.*
+
+    CPP-Options:  -DTESTS
+
+  GHC-Options:  -Wall
+
+Executable rrdgraph-tests
+  if flag(tests)
+    Buildable:    True
+    CPP-Options:  -DTESTS
+  else
+    Buildable:  False
+
+  Main-Is:      RunTests.hs
+  GHC-Options:  -Wall
