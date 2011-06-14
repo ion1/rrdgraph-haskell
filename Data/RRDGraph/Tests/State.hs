@@ -61,12 +61,12 @@ prop_newName_unique (NonNegative n) =
 
 prop_addCommand :: [TCommand] -> Bool
 prop_addCommand cmds =
-  let cmds' = map fromTCommand . take 3 $ cmds
+  let cmds' = map fromTCommand . take 5 $ cmds
   in  runGraphRaw (mapM_ addCommand cmds') == cmds'
 
 prop_addCommandDef_duplicates :: [TCommand] -> Property
 prop_addCommandDef_duplicates cmds =
-  let cmds'  = take 3 . filter applies_addCommandDef . map fromTCommand $ cmds
+  let cmds'  = take 5 . filter applies_addCommandDef . map fromTCommand $ cmds
       cmds'' = cmds' ++ cmds'
       names  = evalGraphState (mapM addCommandDef cmds'')
   in  printNames names $
@@ -74,7 +74,7 @@ prop_addCommandDef_duplicates cmds =
 
 prop_addCommandDef_commands :: [TCommand] -> Property
 prop_addCommandDef_commands cmds =
-  let cmds'   = take 3 . filter applies_addCommandDef . map fromTCommand $ cmds
+  let cmds'   = take 5 . filter applies_addCommandDef . map fromTCommand $ cmds
       cmds''  = cmds' ++ cmds'
       cmdsRes = runGraphRaw (mapM_ addCommandDef cmds'')
   in  printGot "cmdsRes" cmdsRes $
