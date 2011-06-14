@@ -63,8 +63,9 @@ instance Arbitrary TCommand where
       arbText :: Gen String
       arbText = take 1000 . fromNonEmpty <$> arbitrary
 
-      arbStack :: Gen [String]
-      arbStack  =  take 20 . map (fromName . fromTName) . fromNonEmpty
+      arbStack :: Gen [StackItem]
+      arbStack  =  take 20 . map (StackItem . fromName . fromTName)
+                .  fromNonEmpty
                <$> arbitrary
 
       arbReferences :: Gen (S.Set Name)
@@ -95,10 +96,11 @@ instance Arbitrary TCommand where
       shrText :: String -> [String]
       shrText = wrapShrink NonEmpty fromNonEmpty shrink
 
-      shrStack :: [String] -> [[String]]
-      shrStack = wrapShrink (map Name)  (map fromName)
-               . wrapShrink (map TName) (map fromTName)
-               . wrapShrink NonEmpty    fromNonEmpty
+      shrStack :: [StackItem] -> [[StackItem]]
+      shrStack = wrapShrink (map fromStackItem) (map StackItem)
+               . wrapShrink (map Name)          (map fromName)
+               . wrapShrink (map TName)         (map fromTName)
+               . wrapShrink NonEmpty            fromNonEmpty
                $ shrink
 
       shrReferences :: S.Set Name -> [S.Set Name]
@@ -158,7 +160,7 @@ prop_formatCommand (TCommand c) =
     expectedDefCommand prefix =
       concat . catMaybes . runFields
         [ prefix, ":", fromName <$> fLens cmdDefines, "="
-        , intercalate "," <$> fLens cmdStack ]
+        , intercalate "," . map fromStackItem <$> fLens cmdStack ]
 
 -- Helpers.
 

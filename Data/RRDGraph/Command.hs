@@ -21,6 +21,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 module Data.RRDGraph.Command
 ( Command (..)
 , Name (..)
+, StackItem (..)
 , cmdDefines
 , cmdReferences
 , cmdStack
@@ -42,11 +43,11 @@ data Command = DataCommand { _cmdDefines :: Name
                            , _cmdText    :: String
                            }
              | CDefCommand { _cmdDefines    :: Name
-                           , _cmdStack      :: [String]
+                           , _cmdStack      :: [StackItem]
                            , _cmdReferences :: S.Set Name
                            }
              | VDefCommand { _cmdDefines    :: Name
-                           , _cmdStack      :: [String]
+                           , _cmdStack      :: [StackItem]
                            , _cmdReferences :: S.Set Name
                            }
              | GraphCommand { _cmdText       :: String
@@ -56,6 +57,10 @@ data Command = DataCommand { _cmdDefines :: Name
 
 -- | An RRDtool variable name.
 newtype Name = Name { fromName :: String }
+  deriving (Eq, Ord, Read, Show)
+
+-- | An RRDtool RPN stack item.
+newtype StackItem = StackItem { fromStackItem :: String }
   deriving (Eq, Ord, Read, Show)
 
 mkLabels [''Command]
@@ -74,7 +79,7 @@ formatCommand cmd =
     formatDefCommand prefix =
       concat . catMaybes . runFields
         [ prefix, ":", fromName <$> fLens cmdDefines, "="
-        , intercalate "," <$> fLens cmdStack
+        , intercalate "," . map fromStackItem <$> fLens cmdStack
         ]
 
 fLens :: (:->) env a -> Field env a
