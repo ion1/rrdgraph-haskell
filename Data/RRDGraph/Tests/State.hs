@@ -39,12 +39,12 @@ import Test.QuickCheck
 tests_State :: Test
 tests_State = $(testGroupGenerator)
 
-prop_runGraph :: TCommand -> Bool
-prop_runGraph (TCommand cmd) =
+prop_runGraph :: Command -> Bool
+prop_runGraph cmd =
   runGraph (addCommand cmd) == [formatCommand cmd]
 
-prop_runGraphRaw :: TCommand -> Bool
-prop_runGraphRaw (TCommand cmd) =
+prop_runGraphRaw :: Command -> Bool
+prop_runGraphRaw cmd =
   runGraphRaw (addCommand cmd) == [cmd]
 
 prop_newName_valid :: NonNegative Int -> Property
@@ -59,22 +59,22 @@ prop_newName_unique (NonNegative n) =
       names = evalGraphState (replicateM n' newName)
   in  printNames names $ numUniques names == n'
 
-prop_addCommand :: [TCommand] -> Bool
+prop_addCommand :: [Command] -> Bool
 prop_addCommand cmds =
-  let cmds' = map fromTCommand . take 5 $ cmds
+  let cmds' = take 5 $ cmds
   in  runGraphRaw (mapM_ addCommand cmds') == cmds'
 
-prop_addCommandDef_duplicates :: [TCommand] -> Property
+prop_addCommandDef_duplicates :: [Command] -> Property
 prop_addCommandDef_duplicates cmds =
-  let cmds'  = take 5 . filter applies_addCommandDef . map fromTCommand $ cmds
+  let cmds'  = take 5 . filter applies_addCommandDef $ cmds
       cmds'' = cmds' ++ cmds'
       names  = evalGraphState (mapM addCommandDef cmds'')
   in  printNames names $
         numUniques names == (numUniques . map commandNullDefines) cmds''
 
-prop_addCommandDef_commands :: [TCommand] -> Property
+prop_addCommandDef_commands :: [Command] -> Property
 prop_addCommandDef_commands cmds =
-  let cmds'   = take 5 . filter applies_addCommandDef . map fromTCommand $ cmds
+  let cmds'   = take 5 . filter applies_addCommandDef $ cmds
       cmds''  = cmds' ++ cmds'
       cmdsRes = runGraphRaw (mapM_ addCommandDef cmds'')
   in  printGot "cmdsRes" cmdsRes $

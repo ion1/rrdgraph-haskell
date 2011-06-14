@@ -16,12 +16,13 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 -}
 
+-- The only orphan instances are for the module being tested.
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 {-# LANGUAGE TemplateHaskell, OverloadedStrings #-}
 
 module Data.RRDGraph.Tests.Command
-( TCommand (..)
-, TName (..)
-, TNameChar (..)
+( NameChar (..)
 , nameIsValid
 , tests_Command
 )
@@ -43,36 +44,33 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.Framework.TH (testGroupGenerator)
 import Test.QuickCheck
 
-newtype TCommand = TCommand { fromTCommand :: Command }
-  deriving (Eq, Ord, Read, Show)
-
-instance Arbitrary TCommand where
-  arbitrary = TCommand <$> oneof [ arbDataCommand
-                                 , arbDefCommand CDefCommand
-                                 , arbDefCommand VDefCommand
-                                 , arbGraphCommand
-                                 ]
+instance Arbitrary Command where
+  arbitrary = oneof [ arbDataCommand
+                    , arbDefCommand CDefCommand
+                    , arbDefCommand VDefCommand
+                    , arbGraphCommand
+                    ]
     where
       arbDataCommand       = liftA2 DataCommand arbDefines arbText
       arbDefCommand constr = liftA3 constr arbDefines arbStack arbReferences
       arbGraphCommand      = liftA2 GraphCommand arbText arbReferences
 
       arbDefines :: Gen Name
-      arbDefines = fromTName <$> arbitrary
+      arbDefines = arbitrary
 
       arbText :: Gen String
       arbText = take 1000 . fromNonEmpty <$> arbitrary
 
       arbStack :: Gen [StackItem]
-      arbStack  =  take 20 . map (StackItem . fromName . fromTName)
+      arbStack  =  take 20 . map (StackItem . fromName)
                 .  fromNonEmpty
                <$> arbitrary
 
       arbReferences :: Gen (S.Set Name)
-      arbReferences = S.fromList . take 20 . map fromTName <$> arbitrary
+      arbReferences = S.fromList . take 20 <$> arbitrary
 
-  shrink (TCommand cmd) =
-    map TCommand $ case cmd of
+  shrink cmd =
+    case cmd of
       DataCommand {} -> shrinkLens shrDefines cmdDefines cmd
                      ++ shrinkLens shrText    cmdText    cmd
 
@@ -91,7 +89,7 @@ instance Arbitrary TCommand where
       shrinkLens shrinker l f = map (\a -> setL l a f) . shrinker $ getL l f
 
       shrDefines :: Name -> [Name]
-      shrDefines = wrapShrink TName fromTName shrink
+      shrDefines = shrink
 
       shrText :: String -> [String]
       shrText = wrapShrink NonEmpty fromNonEmpty shrink
@@ -99,38 +97,30 @@ instance Arbitrary TCommand where
       shrStack :: [StackItem] -> [[StackItem]]
       shrStack = wrapShrink (map fromStackItem) (map StackItem)
                . wrapShrink (map Name)          (map fromName)
-               . wrapShrink (map TName)         (map fromTName)
                . wrapShrink NonEmpty            fromNonEmpty
                $ shrink
 
       shrReferences :: S.Set Name -> [S.Set Name]
-      shrReferences = wrapShrink S.toList    S.fromList
-                    . wrapShrink (map TName) (map fromTName)
-                    $ shrink
+      shrReferences = wrapShrink S.toList S.fromList shrink
 
-newtype TName = TName { fromTName :: Name }
-  deriving (Eq, Ord, Read, Show)
+instance Arbitrary Name where
+  arbitrary = (Name . map fromNameChar . take 255 <$> listOf1 arbitrary)
+      `suchThat` nameIsValid
 
-instance Arbitrary TName where
-  arbitrary =
-    (TName . Name . map fromTNameChar . take 255 <$> listOf1 arbitrary)
-      `suchThat` (\(TName name) -> nameIsValid name)
-
-  shrink = filter (\(TName name) -> nameIsValid name)
-         . ( wrapShrink fromTName       TName
-           . wrapShrink fromName        Name
-           . wrapShrink (map TNameChar) (map fromTNameChar)
+  shrink = filter nameIsValid
+         . ( wrapShrink fromName       Name
+           . wrapShrink (map NameChar) (map fromNameChar)
            $ shrink )
 
-newtype TNameChar = TNameChar { fromTNameChar :: Char }
+newtype NameChar = NameChar { fromNameChar :: Char }
   deriving (Eq, Ord, Read, Show)
 
-instance Arbitrary TNameChar where
-  arbitrary = TNameChar <$> elements chars
+instance Arbitrary NameChar where
+  arbitrary = NameChar <$> elements chars
     where chars = ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ "-_"
 
-  shrink (TNameChar 'a') = []
-  shrink _               = [TNameChar 'a']
+  shrink (NameChar 'a') = []
+  shrink _              = [NameChar 'a']
 
 nameIsValid :: Name -> Bool
 nameIsValid = and
@@ -145,8 +135,8 @@ nameIsValid = and
 tests_Command :: Test
 tests_Command = $(testGroupGenerator)
 
-prop_formatCommand :: TCommand -> Bool
-prop_formatCommand (TCommand c) =
+prop_formatCommand :: Command -> Bool
+prop_formatCommand c =
   formatCommand c == case c of
     DataCommand {} ->
       concat . catMaybes . flip runFields c $
