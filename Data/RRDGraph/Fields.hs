@@ -81,6 +81,7 @@ module Data.RRDGraph.Fields
 , field
 , runField
 , runFields
+, asks
 , asksM
 )
 where

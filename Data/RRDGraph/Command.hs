@@ -30,12 +30,11 @@ module Data.RRDGraph.Command
 )
 where
 
-import Control.Applicative
-import Control.Monad.Reader
-import Data.List
-import Data.Maybe
 import Data.RRDGraph.Fields
 
+import Control.Applicative
+import Data.List
+import Data.Maybe
 import Data.Record.Label
 import qualified Data.Set as S
 

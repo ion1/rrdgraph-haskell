@@ -32,7 +32,6 @@ import Data.RRDGraph.Command
 import Data.RRDGraph.Fields
 
 import Control.Applicative
-import Control.Monad.Reader
 import Data.Char
 import Data.List
 import Data.Maybe
