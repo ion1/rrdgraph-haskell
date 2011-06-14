@@ -17,7 +17,8 @@ Flag tests
   Default:      False
 
 Library
-  Exposed-Modules:  Data.RRDGraph.State
+  Exposed-Modules:  Data.RRDGraph.Command,
+                    Data.RRDGraph.State
 
   Build-Depends:    base == 4.*,
                     containers > 0.3 && < 0.5,
@@ -27,7 +28,8 @@ Library
                     transformers == 0.2.*
 
   if flag(tests)
-    Exposed-Modules:  Data.RRDGraph.Tests.State
+    Exposed-Modules:  Data.RRDGraph.Tests.Command,
+                      Data.RRDGraph.Tests.State
 
     Build-Depends:    HUnit == 1.2.*,
                       QuickCheck == 2.4.*,

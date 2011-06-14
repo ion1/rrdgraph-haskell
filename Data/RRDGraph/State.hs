@@ -20,13 +20,14 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 module Data.RRDGraph.State
 ( GraphState (..)
-, Name (..)
 , runGraphState
 , evalGraphState
 , execGraphState
 , newName
 )
 where
+
+import Data.RRDGraph.Command (Name (..))
 
 import Control.Applicative
 import Control.Monad.State
@@ -43,10 +44,6 @@ data GraphStateData = GraphStateData { _gsdCounter :: Integer }
 
 instance Default GraphStateData where
   def = GraphStateData def
-
--- | An RRDtool variable name.
-newtype Name = Name String
-  deriving (Eq, Ord, Read, Show)
 
 mkLabels [''GraphStateData]
 

@@ -16,32 +16,10 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 -}
 
-{-# LANGUAGE TemplateHaskell #-}
-
-module Data.RRDGraph.Tests.State (tests_State)
+module Data.RRDGraph.Command
+( Name (..) )
 where
 
-import Data.RRDGraph.State
-
-import Data.RRDGraph.Tests.Command (nameIsValid)
-
-import Control.Monad
-import Data.List
-
-import Test.Framework (Test)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.Framework.TH (testGroupGenerator)
-import Test.QuickCheck (NonNegative (..))
-
-tests_State :: Test
-tests_State = $(testGroupGenerator)
-
-prop_namesAreValid :: NonNegative Int -> Bool
-prop_namesAreValid (NonNegative n) =
-  let n' = min n 100
-  in  all nameIsValid $ evalGraphState (replicateM n' newName)
-
-prop_namesAreUnique :: NonNegative Int -> Bool
-prop_namesAreUnique (NonNegative n) =
-  let n' = min n 100
-  in  (== n') . length . nub $ evalGraphState (replicateM n' newName)
+-- | An RRDtool variable name.
+newtype Name = Name String
+  deriving (Eq, Ord, Read, Show)
