@@ -24,6 +24,7 @@ Library
   Build-Depends:    base == 4.*,
                     containers >= 0.3 && < 0.5,
                     data-default == 0.2.*,
+                    dlist >= 0.5 && < 0.6,
                     fclabels == 0.11.*,
                     mtl == 2.*,
                     transformers == 0.2.*

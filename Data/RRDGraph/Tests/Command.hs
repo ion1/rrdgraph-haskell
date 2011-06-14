@@ -19,7 +19,10 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 {-# LANGUAGE TemplateHaskell, OverloadedStrings #-}
 
 module Data.RRDGraph.Tests.Command
-( nameIsValid
+( TCommand (..)
+, TName (..)
+, TNameChar (..)
+, nameIsValid
 , tests_Command
 )
 where

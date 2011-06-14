@@ -21,9 +21,10 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 module Data.RRDGraph.Tests.State (tests_State)
 where
 
+import Data.RRDGraph.Command
 import Data.RRDGraph.State
 
-import Data.RRDGraph.Tests.Command (nameIsValid)
+import Data.RRDGraph.Tests.Command
 
 import Control.Monad
 import Data.List
@@ -31,10 +32,18 @@ import Data.List
 import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.Framework.TH (testGroupGenerator)
-import Test.QuickCheck (NonNegative (..))
+import Test.QuickCheck
 
 tests_State :: Test
 tests_State = $(testGroupGenerator)
+
+prop_runGraph :: TCommand -> Bool
+prop_runGraph (TCommand cmd) =
+  runGraph (addCommand cmd) == [formatCommand cmd]
+
+prop_runGraphRaw :: TCommand -> Bool
+prop_runGraphRaw (TCommand cmd) =
+  runGraphRaw (addCommand cmd) == [cmd]
 
 prop_namesAreValid :: NonNegative Int -> Bool
 prop_namesAreValid (NonNegative n) =
@@ -45,3 +54,8 @@ prop_namesAreUnique :: NonNegative Int -> Bool
 prop_namesAreUnique (NonNegative n) =
   let n' = min n 100
   in  (== n') . length . nub $ evalGraphState (replicateM n' newName)
+
+prop_addCommand :: [TCommand] -> Bool
+prop_addCommand cmds =
+  let cmds' = map fromTCommand . take 3 $ cmds
+  in  runGraphRaw (mapM_ addCommand cmds') == cmds'

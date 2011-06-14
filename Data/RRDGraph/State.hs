@@ -20,18 +20,22 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 module Data.RRDGraph.State
 ( GraphState (..)
+, runGraph
+, runGraphRaw
 , runGraphState
 , evalGraphState
 , execGraphState
 , newName
+, addCommand
 )
 where
 
-import Data.RRDGraph.Command (Name (..))
+import Data.RRDGraph.Command
 
 import Control.Applicative
 import Control.Monad.State
 import Data.Default
+import qualified Data.DList as DL
 import Data.Record.Label
 
 -- | The state monad used to build a list of RRDtool commands.
@@ -40,12 +44,24 @@ newtype GraphState a = GraphState { fromGraphState :: State GraphStateData a }
            , MonadState GraphStateData )
 
 -- | The actual state data for 'GraphState'.
-data GraphStateData = GraphStateData { _gsdCounter :: Integer }
+data GraphStateData = GraphStateData { _gsdCounter  :: Integer
+                                     , _gsdCommands :: DL.DList Command
+                                     }
 
 instance Default GraphStateData where
-  def = GraphStateData def
+  def = GraphStateData def defDList where defDList = DL.empty
 
 mkLabels [''GraphStateData]
+
+-- | Run a 'GraphState' computation, returning the resulting list of RRDtool
+-- commands as strings.
+runGraph :: GraphState a -> [String]
+runGraph = map formatCommand . runGraphRaw
+
+-- | Run a 'GraphState' computation, returning the resulting list of 'Command'
+-- structures.
+runGraphRaw :: GraphState a -> [Command]
+runGraphRaw = DL.toList . getL gsdCommands . execGraphState
 
 -- | Run a 'GraphState' computation, returning the result value and the
 -- resulting state.
@@ -63,3 +79,7 @@ execGraphState = flip execState def . fromGraphState
 -- | Generate a unique RRDtool variable name.
 newName :: GraphState Name
 newName = Name . ("v" ++) . show <$> getM gsdCounter <* modM gsdCounter (+1)
+
+-- | Add a 'Command' to the resulting list of commands.
+addCommand :: Command -> GraphState ()
+addCommand = modM gsdCommands . flip DL.snoc
