@@ -16,10 +16,66 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 -}
 
+{-# LANGUAGE TemplateHaskell, OverloadedStrings #-}
+
 module Data.RRDGraph.Command
-( Name (..) )
+( Command (..)
+, Name (..)
+, cmdDefines
+, cmdReferences
+, cmdStack
+, cmdText
+, formatCommand
+)
 where
 
--- | An RRDtool variable name.
-newtype Name = Name String
+import Control.Applicative
+import Control.Monad.Reader
+import Data.List
+import Data.Maybe
+import Data.RRDGraph.Fields
+
+import Data.Record.Label
+import qualified Data.Set as S
+
+data Command = DataCommand { _cmdDefines :: Name
+                           , _cmdText    :: String
+                           }
+             | CDefCommand { _cmdDefines    :: Name
+                           , _cmdStack      :: [String]
+                           , _cmdReferences :: S.Set Name
+                           }
+             | VDefCommand { _cmdDefines    :: Name
+                           , _cmdStack      :: [String]
+                           , _cmdReferences :: S.Set Name
+                           }
+             | GraphCommand { _cmdText       :: String
+                            , _cmdReferences :: S.Set Name
+                            }
   deriving (Eq, Ord, Read, Show)
+
+-- | An RRDtool variable name.
+newtype Name = Name { fromName :: String }
+  deriving (Eq, Ord, Read, Show)
+
+mkLabels [''Command]
+
+formatCommand :: Command -> String
+formatCommand cmd =
+  case cmd of
+    DataCommand {} ->
+      concat . catMaybes . flip runFields cmd $
+        [ "DEF:", fromName <$> fLens cmdDefines, "=", fLens cmdText ]
+    CDefCommand {}  -> formatDefCommand "CDEF" cmd
+    VDefCommand {}  -> formatDefCommand "VDEF" cmd
+    GraphCommand {} -> getL cmdText cmd
+
+  where
+    formatDefCommand prefix =
+      concat . catMaybes . runFields
+        [ prefix, ":", fromName <$> fLens cmdDefines, "="
+        , intercalate "," <$> fLens cmdStack
+        ]
+
+fLens :: (:->) env a -> Field env a
+fLens = asks . getL
