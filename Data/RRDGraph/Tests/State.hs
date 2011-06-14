@@ -47,14 +47,14 @@ prop_runGraphRaw :: TCommand -> Bool
 prop_runGraphRaw (TCommand cmd) =
   runGraphRaw (addCommand cmd) == [cmd]
 
-prop_namesAreValid :: NonNegative Int -> Property
-prop_namesAreValid (NonNegative n) =
+prop_newName_valid :: NonNegative Int -> Property
+prop_newName_valid (NonNegative n) =
   let n'    = min n 100
       names = evalGraphState (replicateM n' newName)
   in  printNames names $ all nameIsValid names
 
-prop_namesAreUnique :: NonNegative Int -> Property
-prop_namesAreUnique (NonNegative n) =
+prop_newName_unique :: NonNegative Int -> Property
+prop_newName_unique (NonNegative n) =
   let n'    = min n 100
       names = evalGraphState (replicateM n' newName)
   in  printNames names $ (S.size . S.fromList) names == n'
