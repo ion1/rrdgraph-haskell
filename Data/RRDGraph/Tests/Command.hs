@@ -33,8 +33,14 @@ import Test.Framework (Test)
 import Test.Framework.TH (testGroupGenerator)
 
 nameIsValid :: Name -> Bool
-nameIsValid (Name str) =
-  liftA2 (&&) (not . all isUpper) (not . all isDigit) str
+nameIsValid = and
+            . sequence [ not . null
+                       , (<= 255) . length
+                       , not . all isPunctuation
+                       , not . all isUpper
+                       , not . all isDigit
+                       ]
+            . fromName
 
 tests_Command :: Test
 tests_Command = $(testGroupGenerator)
