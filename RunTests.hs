@@ -18,6 +18,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 module Main where
 
+import Data.RRDGraph.Tests.CDef (tests_CDef)
 import Data.RRDGraph.Tests.Command (tests_Command)
 import Data.RRDGraph.Tests.Fields (tests_Fields)
 import Data.RRDGraph.Tests.State (tests_State)
@@ -25,7 +26,8 @@ import Data.RRDGraph.Tests.State (tests_State)
 import Test.Framework (defaultMain)
 
 main :: IO ()
-main = defaultMain [ tests_Command
+main = defaultMain [ tests_CDef
+                   , tests_Command
                    , tests_Fields
                    , tests_State
                    ]

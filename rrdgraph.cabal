@@ -17,7 +17,8 @@ Flag tests
   Default:      False
 
 Library
-  Exposed-Modules:  Data.RRDGraph.Command,
+  Exposed-Modules:  Data.RRDGraph.CDef,
+                    Data.RRDGraph.Command,
                     Data.RRDGraph.Fields,
                     Data.RRDGraph.State
 
@@ -30,7 +31,8 @@ Library
                     transformers == 0.2.*
 
   if flag(tests)
-    Exposed-Modules:  Data.RRDGraph.Tests.Command,
+    Exposed-Modules:  Data.RRDGraph.Tests.CDef,
+                      Data.RRDGraph.Tests.Command,
                       Data.RRDGraph.Tests.Fields,
                       Data.RRDGraph.Tests.State
 
