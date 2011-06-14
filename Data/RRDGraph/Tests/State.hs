@@ -22,6 +22,7 @@ module Data.RRDGraph.Tests.State (tests_State)
 where
 
 import Data.RRDGraph.Command
+import Data.RRDGraph.Internal
 import Data.RRDGraph.State
 
 import Data.RRDGraph.Tests.Command
@@ -87,9 +88,6 @@ applies_addCommandDef (VDefCommand {})  = True
 applies_addCommandDef (GraphCommand {}) = False
 
 -- Helpers.
-
-numUniques :: Ord a => [a] -> Int
-numUniques = S.size . S.fromList
 
 commandNullDefines :: Command -> Command
 commandNullDefines = setL cmdDefines (Name "")

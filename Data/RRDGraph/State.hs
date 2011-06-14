@@ -32,6 +32,7 @@ module Data.RRDGraph.State
 where
 
 import Data.RRDGraph.Command
+import Data.RRDGraph.Internal
 
 import Control.Applicative
 import Control.Monad.State
@@ -118,9 +119,3 @@ addCommandDef cmd_ =
 
     insertDuplMap :: Command -> Name -> GraphState ()
     insertDuplMap = modM gsdDuplMap .: M.insert
-
--- Helpers.
-
-infixr 9 .:
-(.:) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
-(.:) f g a b = f (g a b)

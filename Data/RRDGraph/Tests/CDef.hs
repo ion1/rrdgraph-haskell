@@ -27,9 +27,9 @@ where
 import Prelude hiding (LT, EQ, GT)
 
 import Data.RRDGraph.CDef
+import Data.RRDGraph.Internal
 
 import Control.Applicative
-import Data.Record.Label
 import Data.Monoid
 
 import Test.Framework (Test)
@@ -106,9 +106,6 @@ instance Arbitrary CDef where
         shrOp4 PredictSigmaShiftMultiplier a b c d
 
     where
-      shrinkLens :: (a -> [a]) -> (:->) f a -> f -> [f]
-      shrinkLens shrinker l f = map (\a -> setL l a f) . shrinker $ getL l f
-
       shrName = map fromNonEmpty . shrink . NonEmpty
 
       shrOp0 _          =  Constant 0 : []

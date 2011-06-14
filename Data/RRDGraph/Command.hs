@@ -31,6 +31,7 @@ module Data.RRDGraph.Command
 where
 
 import Data.RRDGraph.Fields
+import Data.RRDGraph.Internal
 
 import Control.Applicative
 import Data.List
@@ -80,6 +81,3 @@ formatCommand cmd =
         [ prefix, ":", fromName <$> fLens cmdDefines, "="
         , intercalate "," . map fromStackItem <$> fLens cmdStack
         ]
-
-fLens :: (:->) env a -> Field env a
-fLens = asks . getL

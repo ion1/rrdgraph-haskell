@@ -30,6 +30,7 @@ where
 
 import Data.RRDGraph.Command
 import Data.RRDGraph.Fields
+import Data.RRDGraph.Internal
 
 import Control.Applicative
 import Data.Char
@@ -86,9 +87,6 @@ instance Arbitrary Command where
         flip mconcat cmd [ shrinkLens shrText       cmdText
                          , shrinkLens shrReferences cmdReferences ]
     where
-      shrinkLens :: (a -> [a]) -> (:->) f a -> f -> [f]
-      shrinkLens shrinker l f = map (\a -> setL l a f) . shrinker $ getL l f
-
       shrDefines :: Name -> [Name]
       shrDefines = shrink
 
@@ -154,12 +152,6 @@ prop_formatCommand c =
         , intercalate "," . map fromStackItem <$> fLens cmdStack ]
 
 -- Helpers.
-
-wrapShrink :: (a -> b) -> (b -> a) -> (b -> [b]) -> a -> [a]
-wrapShrink wrapper unwrapper shrinker = map unwrapper . shrinker . wrapper
-
-fLens :: (:->) env a -> Field env a
-fLens = asks . getL
 
 fromNonEmpty :: NonEmptyList a -> [a]
 fromNonEmpty (NonEmpty xs) = xs

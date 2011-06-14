@@ -21,6 +21,7 @@ module Main where
 import Data.RRDGraph.Tests.CDef (tests_CDef)
 import Data.RRDGraph.Tests.Command (tests_Command)
 import Data.RRDGraph.Tests.Fields (tests_Fields)
+import Data.RRDGraph.Tests.Internal (tests_Internal)
 import Data.RRDGraph.Tests.State (tests_State)
 
 import Test.Framework (defaultMain)
@@ -29,5 +30,6 @@ main :: IO ()
 main = defaultMain [ tests_CDef
                    , tests_Command
                    , tests_Fields
+                   , tests_Internal
                    , tests_State
                    ]
