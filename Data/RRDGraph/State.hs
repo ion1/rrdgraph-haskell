@@ -16,13 +16,15 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 -}
 
-{-# LANGUAGE CPP, TemplateHaskell, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving #-}
 
 module Data.RRDGraph.State
 ( GraphState (..)
-#ifdef TESTS
-, tests_State
-#endif
+, Name (..)
+, runGraphState
+, evalGraphState
+, execGraphState
+, newName
 )
 where
 
@@ -30,15 +32,6 @@ import Control.Applicative
 import Control.Monad.State
 import Data.Default
 import Data.Record.Label
-
-#ifdef TESTS
-import Data.Char (isDigit, isUpper)
-import Data.List (nub)
-import Test.Framework (Test)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.Framework.TH (testGroupGenerator)
-import Test.QuickCheck (NonNegative (..))
-#endif
 
 -- | The state monad used to build a list of RRDtool commands.
 newtype GraphState a = GraphState { fromGraphState :: State GraphStateData a }
@@ -73,22 +66,3 @@ execGraphState = flip execState def . fromGraphState
 -- | Generate a unique RRDtool variable name.
 newName :: GraphState Name
 newName = Name . ("v" ++) . show <$> getM gsdCounter <* modM gsdCounter (+1)
-
-#ifdef TESTS
-tests_State :: Test
-tests_State = $(testGroupGenerator)
-
-prop_namesAreValid :: NonNegative Int -> Bool
-prop_namesAreValid (NonNegative n) =
-  let n' = min n 100
-  in  all nameIsValid $ evalGraphState (replicateM n' newName)
-
-prop_namesAreUnique :: NonNegative Int -> Bool
-prop_namesAreUnique (NonNegative n) =
-  let n' = min n 100
-  in  (== n') . length . nub $ evalGraphState (replicateM n' newName)
-
-nameIsValid :: Name -> Bool
-nameIsValid (Name str) =
-  liftA2 (&&) (not . all isUpper) (not . all isDigit) str
-#endif

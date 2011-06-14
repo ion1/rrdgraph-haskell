@@ -27,6 +27,8 @@ Library
                     transformers == 0.2.*
 
   if flag(tests)
+    Exposed-Modules:  Data.RRDGraph.Tests.State
+
     Build-Depends:    HUnit == 1.2.*,
                       QuickCheck == 2.4.*,
                       test-framework == 0.4.*,

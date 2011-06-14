@@ -18,7 +18,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 module Main where
 
-import Data.RRDGraph.State (tests_State)
+import Data.RRDGraph.Tests.State (tests_State)
 
 import Test.Framework (defaultMain)
 
