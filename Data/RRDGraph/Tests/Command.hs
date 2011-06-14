@@ -61,11 +61,10 @@ instance Arbitrary TCommand where
       arbDefines = fromTName <$> arbitrary
 
       arbText :: Gen String
-      arbText = (\(NonEmpty xs) -> xs) <$> arbitrary
+      arbText = fromNonEmpty <$> arbitrary
 
       arbStack :: Gen [String]
-      arbStack  =  map (fromName . fromTName) . (\(NonEmpty xs) -> xs)
-               <$> arbitrary
+      arbStack = map (fromName . fromTName) . fromNonEmpty <$> arbitrary
 
       arbReferences :: Gen (S.Set Name)
       arbReferences = S.fromList . map fromTName <$> arbitrary
@@ -93,12 +92,12 @@ instance Arbitrary TCommand where
       shrDefines = wrapShrink TName fromTName shrink
 
       shrText :: String -> [String]
-      shrText = wrapShrink NonEmpty (\(NonEmpty xs) -> xs) shrink
+      shrText = wrapShrink NonEmpty fromNonEmpty shrink
 
       shrStack :: [String] -> [[String]]
       shrStack = wrapShrink (map Name)  (map fromName)
                . wrapShrink (map TName) (map fromTName)
-               . wrapShrink NonEmpty    (\(NonEmpty xs) -> xs)
+               . wrapShrink NonEmpty    fromNonEmpty
                $ shrink
 
       shrReferences :: S.Set Name -> [S.Set Name]
@@ -167,3 +166,6 @@ wrapShrink wrapper unwrapper shrinker = map unwrapper . shrinker . wrapper
 
 fLens :: (:->) env a -> Field env a
 fLens = asks . getL
+
+fromNonEmpty :: NonEmptyList a -> [a]
+fromNonEmpty (NonEmpty xs) = xs
