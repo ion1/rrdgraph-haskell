@@ -64,17 +64,22 @@ prop_addCommand cmds =
   let cmds' = map fromTCommand . take 3 $ cmds
   in  runGraphRaw (mapM_ addCommand cmds') == cmds'
 
-prop_addCommandDef_duplicates :: TCommand -> Property
-prop_addCommandDef_duplicates (TCommand cmd) = applies_addCommandDef cmd ==>
-  let names = evalGraphState (replicateM 2 (addCommandDef cmd))
-  in  printNames names $ length names == 2 && (S.size . S.fromList) names == 1
+prop_addCommandDef_duplicates :: [TCommand] -> Property
+prop_addCommandDef_duplicates cmds =
+  let cmds'  = take 3 . filter applies_addCommandDef . map fromTCommand $ cmds
+      cmds'' = cmds' ++ cmds'
+      names  = evalGraphState (mapM addCommandDef cmds'')
+  in  printNames names $
+        (S.size . S.fromList) names ==
+          (S.size . S.fromList . map commandNullDefines) cmds''
 
-prop_addCommandDef_commands :: TCommand -> Property
-prop_addCommandDef_commands (TCommand cmd) = applies_addCommandDef cmd ==>
-  let cmds = runGraphRaw (replicateM 2 (addCommandDef cmd))
-  in  printGot "cmds" cmds $ length cmds == 1 && cmd `eqCmd` head cmds
-  where
-    eqCmd = (==) `on` setL cmdDefines (Name "@")
+prop_addCommandDef_commands :: [TCommand] -> Property
+prop_addCommandDef_commands cmds =
+  let cmds'   = take 3 . filter applies_addCommandDef . map fromTCommand $ cmds
+      cmds''  = cmds' ++ cmds'
+      cmdsRes = runGraphRaw (mapM_ addCommandDef cmds'')
+  in  printGot "cmdsRes" cmdsRes $
+        ((==) `on` S.fromList . map commandNullDefines) cmds'' cmdsRes
 
 applies_addCommandDef :: Command -> Bool
 applies_addCommandDef (DataCommand {})  = True
@@ -83,6 +88,9 @@ applies_addCommandDef (VDefCommand {})  = True
 applies_addCommandDef (GraphCommand {}) = False
 
 -- Helpers.
+
+commandNullDefines :: Command -> Command
+commandNullDefines = setL cmdDefines (Name "")
 
 printGot :: (Show a, Testable prop) => String -> a -> prop -> Property
 printGot name value = printTestCase ("Got " ++ name ++ ": " ++ show value)
