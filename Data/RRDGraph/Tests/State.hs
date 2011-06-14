@@ -51,15 +51,13 @@ prop_namesAreValid :: NonNegative Int -> Property
 prop_namesAreValid (NonNegative n) =
   let n'    = min n 100
       names = evalGraphState (replicateM n' newName)
-  in  printTestCase ("Got names: " ++ show (map fromName names))
-        $ all nameIsValid names
+  in  printNames names $ all nameIsValid names
 
 prop_namesAreUnique :: NonNegative Int -> Property
 prop_namesAreUnique (NonNegative n) =
   let n'    = min n 100
       names = evalGraphState (replicateM n' newName)
-  in  printTestCase ("Got names: " ++ show (map fromName names))
-        $ (S.size . S.fromList) names == n'
+  in  printNames names $ (S.size . S.fromList) names == n'
 
 prop_addCommand :: [TCommand] -> Bool
 prop_addCommand cmds =
@@ -69,14 +67,12 @@ prop_addCommand cmds =
 prop_addCommandDef_duplicates :: TCommand -> Property
 prop_addCommandDef_duplicates (TCommand cmd) = applies_addCommandDef cmd ==>
   let names = evalGraphState (replicateM 2 (addCommandDef cmd))
-  in  printTestCase ("Got names: " ++ show (map fromName names))
-        $ length names == 2 && (S.size . S.fromList) names == 1
+  in  printNames names $ length names == 2 && (S.size . S.fromList) names == 1
 
 prop_addCommandDef_commands :: TCommand -> Property
 prop_addCommandDef_commands (TCommand cmd) = applies_addCommandDef cmd ==>
   let cmds = runGraphRaw (replicateM 2 (addCommandDef cmd))
-  in  printTestCase ("Got cmds: " ++ show cmds)
-        $ length cmds == 1 && cmd `eqCmd` (head cmds)
+  in  printGot "cmds" cmds $ length cmds == 1 && cmd `eqCmd` head cmds
   where
     eqCmd = (==) `on` setL cmdDefines (Name "@")
 
@@ -85,3 +81,11 @@ applies_addCommandDef (DataCommand {})  = True
 applies_addCommandDef (CDefCommand {})  = True
 applies_addCommandDef (VDefCommand {})  = True
 applies_addCommandDef (GraphCommand {}) = False
+
+-- Helpers.
+
+printGot :: (Show a, Testable prop) => String -> a -> prop -> Property
+printGot name value = printTestCase ("Got " ++ name ++ ": " ++ show value)
+
+printNames :: Testable prop => [Name] -> prop -> Property
+printNames = printGot "names" . map fromName
