@@ -45,7 +45,7 @@ Library
 
     CPP-Options:  -DTESTS
 
-  GHC-Options:  -Wall
+  GHC-Options:  -Wall -Werror
 
 Executable rrdgraph-tests
   if flag(tests)
@@ -55,4 +55,4 @@ Executable rrdgraph-tests
     Buildable:  False
 
   Main-Is:      RunTests.hs
-  GHC-Options:  -Wall
+  GHC-Options:  -Wall -Werror
