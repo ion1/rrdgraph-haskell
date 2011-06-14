@@ -25,7 +25,6 @@ module Data.RRDGraph.CDef
 , CDefOp1 (..)
 , CDefOp2 (..)
 , CDefOp3 (..)
-, CDefOp4 (..)
 
 , CF (..)
 
@@ -106,10 +105,11 @@ data CDef = Constant Rational
           | COp1 CDefOp1 CDef
           | COp2 CDefOp2 CDef CDef
           | COp3 CDefOp3 CDef CDef CDef
-          | COp4 CDefOp4 CDef CDef CDef CDef
           | Avg [CDef]
           | Predict [CDef] CDef CDef
           | PredictSigma [CDef] CDef CDef
+          | PredictShiftMultiplier CDef CDef CDef CDef
+          | PredictSigmaShiftMultiplier CDef CDef CDef CDef
   deriving (Eq, Read, Show)
 
 instance Num CDef where
@@ -138,8 +138,6 @@ data CDefOp2 = LT | LE | GT | GE | EQ | NE | Min | Max | Add | Sub | Mul | Div
 data CDefOp3 = If | Limit
   deriving (Eq, Read, Show)
 
-data CDefOp4 = PredictShiftMultiplier | PredictSigmaShiftMultiplier
-  deriving (Eq, Read, Show)
 
 cLT       :: CDef -> CDef -> CDef
 cLE       :: CDef -> CDef -> CDef
@@ -225,8 +223,8 @@ cTrendNAN = COp2 TrendNAN
 
 cPredict                     = Predict
 cPredictSigma                = PredictSigma
-cPredictShiftMultiplier      = COp4 PredictShiftMultiplier
-cPredictSigmaShiftMultiplier = COp4 PredictSigmaShiftMultiplier
+cPredictShiftMultiplier      = PredictShiftMultiplier
+cPredictSigmaShiftMultiplier = PredictSigmaShiftMultiplier
 
 cUnkn   = COp0 Unkn
 cInf    = COp0 Inf

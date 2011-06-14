@@ -52,11 +52,13 @@ instance Arbitrary CDef where
         , COp1 <$> arbitrary <*> arb depth
         , COp2 <$> arbitrary <*> arb depth <*> arb depth
         , COp3 <$> arbitrary <*> arb depth <*> arb depth <*> arb depth
-        , COp4 <$> arbitrary <*> arb depth <*> arb depth <*> arb depth
-               <*> arb depth
         , Avg  <$> arbList depth
         , oneof [ Predict      <$> arbList depth <*> arb depth <*> arb depth
                 , PredictSigma <$> arbList depth <*> arb depth <*> arb depth
+                , PredictShiftMultiplier      <$> arb depth <*> arb depth
+                                              <*> arb depth <*> arb depth
+                , PredictSigmaShiftMultiplier <$> arb depth <*> arb depth
+                                              <*> arb depth <*> arb depth
                 ]
         ]
 
@@ -86,15 +88,19 @@ instance Arbitrary CDef where
                  ++ shrinkLens shrink  dataEndM      cDef
                  ++ shrinkLens shrink  dataReduceM   cDef
 
-      COp0 op         -> shrOp0 (COp0 op)
-      COp1 op a       -> shrOp1 (COp1 op) a
-      COp2 op a b     -> shrOp2 (COp2 op) a b
-      COp3 op a b c   -> shrOp3 (COp3 op) a b c
-      COp4 op a b c d -> shrOp4 (COp4 op) a b c d
+      COp0 op       -> shrOp0 (COp0 op)
+      COp1 op a     -> shrOp1 (COp1 op) a
+      COp2 op a b   -> shrOp2 (COp2 op) a b
+      COp3 op a b c -> shrOp3 (COp3 op) a b c
 
       Avg          xs     -> shrOp1 Avg          xs
       Predict      xs a b -> shrOp3 Predict      xs a b
       PredictSigma xs a b -> shrOp3 PredictSigma xs a b
+
+      PredictShiftMultiplier a b c d ->
+        shrOp4 PredictShiftMultiplier a b c d
+      PredictSigmaShiftMultiplier a b c d ->
+        shrOp4 PredictSigmaShiftMultiplier a b c d
 
     where
       shrinkLens :: (a -> [a]) -> (:->) f a -> f -> [f]
@@ -132,9 +138,6 @@ instance Arbitrary CDefOp2 where
 
 instance Arbitrary CDefOp3 where
   arbitrary = elements [ If, Limit ]
-
-instance Arbitrary CDefOp4 where
-  arbitrary = elements [ PredictShiftMultiplier, PredictSigmaShiftMultiplier ]
 
 instance Arbitrary CF where
   arbitrary = elements [ CFAverage, CFMin, CFMax, CFLast ]
