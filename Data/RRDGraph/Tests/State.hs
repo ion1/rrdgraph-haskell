@@ -57,7 +57,7 @@ prop_newName_unique :: NonNegative Int -> Property
 prop_newName_unique (NonNegative n) =
   let n'    = min n 100
       names = evalGraphState (replicateM n' newName)
-  in  printNames names $ (S.size . S.fromList) names == n'
+  in  printNames names $ numUniques names == n'
 
 prop_addCommand :: [TCommand] -> Bool
 prop_addCommand cmds =
@@ -70,8 +70,7 @@ prop_addCommandDef_duplicates cmds =
       cmds'' = cmds' ++ cmds'
       names  = evalGraphState (mapM addCommandDef cmds'')
   in  printNames names $
-        (S.size . S.fromList) names ==
-          (S.size . S.fromList . map commandNullDefines) cmds''
+        numUniques names == (numUniques . map commandNullDefines) cmds''
 
 prop_addCommandDef_commands :: [TCommand] -> Property
 prop_addCommandDef_commands cmds =
@@ -88,6 +87,9 @@ applies_addCommandDef (VDefCommand {})  = True
 applies_addCommandDef (GraphCommand {}) = False
 
 -- Helpers.
+
+numUniques :: Ord a => [a] -> Int
+numUniques = S.size . S.fromList
 
 commandNullDefines :: Command -> Command
 commandNullDefines = setL cmdDefines (Name "")
