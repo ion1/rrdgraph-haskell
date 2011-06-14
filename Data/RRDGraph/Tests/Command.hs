@@ -36,6 +36,7 @@ import Control.Monad.Reader
 import Data.Char
 import Data.List
 import Data.Maybe
+import Data.Monoid
 import Data.Record.Label
 import qualified Data.Set as S
 
@@ -71,19 +72,20 @@ instance Arbitrary Command where
 
   shrink cmd =
     case cmd of
-      DataCommand {} -> shrinkLens shrDefines cmdDefines cmd
-                     ++ shrinkLens shrText    cmdText    cmd
-
-      CDefCommand {} -> shrinkLens shrDefines    cmdDefines    cmd
-                     ++ shrinkLens shrStack      cmdStack      cmd
-                     ++ shrinkLens shrReferences cmdReferences cmd
-
-      VDefCommand {} -> shrinkLens shrDefines    cmdDefines    cmd
-                     ++ shrinkLens shrStack      cmdStack      cmd
-                     ++ shrinkLens shrReferences cmdReferences cmd
-
-      GraphCommand {} -> shrinkLens shrText       cmdText       cmd
-                      ++ shrinkLens shrReferences cmdReferences cmd
+      DataCommand {} ->
+        flip mconcat cmd [ shrinkLens shrDefines cmdDefines
+                         , shrinkLens shrText    cmdText    ]
+      CDefCommand {} ->
+        flip mconcat cmd [ shrinkLens shrDefines    cmdDefines
+                         , shrinkLens shrStack      cmdStack
+                         , shrinkLens shrReferences cmdReferences ]
+      VDefCommand {} ->
+        flip mconcat cmd [ shrinkLens shrDefines    cmdDefines
+                         , shrinkLens shrStack      cmdStack
+                         , shrinkLens shrReferences cmdReferences ]
+      GraphCommand {} ->
+        flip mconcat cmd [ shrinkLens shrText       cmdText
+                         , shrinkLens shrReferences cmdReferences ]
     where
       shrinkLens :: (a -> [a]) -> (:->) f a -> f -> [f]
       shrinkLens shrinker l f = map (\a -> setL l a f) . shrinker $ getL l f

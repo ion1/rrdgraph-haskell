@@ -30,6 +30,7 @@ import Data.RRDGraph.CDef
 
 import Control.Applicative
 import Data.Record.Label
+import Data.Monoid
 
 import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
@@ -79,14 +80,16 @@ instance Arbitrary CDef where
   shrink cDef =
     case cDef of
       Constant n -> Constant <$> shrink n
-      Data {}    -> Constant 0
-                 :  shrinkLens shrName dataFilename  cDef
-                 ++ shrinkLens shrName dataDSName    cDef
-                 ++ shrinkLens shrink  dataCF        cDef
-                 ++ shrinkLens shrink  dataStepSizeM cDef
-                 ++ shrinkLens shrink  dataStartM    cDef
-                 ++ shrinkLens shrink  dataEndM      cDef
-                 ++ shrinkLens shrink  dataReduceM   cDef
+      Data {}    -> flip mconcat cDef
+                      [ const [Constant 0]
+                      , shrinkLens shrName dataFilename
+                      , shrinkLens shrName dataDSName
+                      , shrinkLens shrink  dataCF
+                      , shrinkLens shrink  dataStepSizeM
+                      , shrinkLens shrink  dataStartM
+                      , shrinkLens shrink  dataEndM
+                      , shrinkLens shrink  dataReduceM
+                      ]
 
       COp0 op       -> shrOp0 (COp0 op)
       COp1 op a     -> shrOp1 (COp1 op) a
