@@ -27,7 +27,7 @@ import Data.RRDGraph.State
 import Data.RRDGraph.Tests.Command
 
 import Control.Monad
-import Data.List
+import qualified Data.Set as S
 
 import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
@@ -57,7 +57,7 @@ prop_namesAreUnique (NonNegative n) =
   let n'    = min n 100
       names = evalGraphState (replicateM n' newName)
   in  printTestCase ("Got names: " ++ show (map fromName names))
-        $ (length . nub) names == n'
+        $ (S.size . S.fromList) names == n'
 
 prop_addCommand :: [TCommand] -> Bool
 prop_addCommand cmds =
