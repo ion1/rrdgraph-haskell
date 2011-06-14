@@ -27,6 +27,7 @@ module Data.RRDGraph.State
 , execGraphState
 , newName
 , addCommand
+, addCommandDef
 )
 where
 
@@ -36,6 +37,7 @@ import Control.Applicative
 import Control.Monad.State
 import Data.Default
 import qualified Data.DList as DL
+import qualified Data.Map as M
 import Data.Record.Label
 
 -- | The state monad used to build a list of RRDtool commands.
@@ -45,11 +47,12 @@ newtype GraphState a = GraphState { fromGraphState :: State GraphStateData a }
 
 -- | The actual state data for 'GraphState'.
 data GraphStateData = GraphStateData { _gsdCounter  :: Integer
+                                     , _gsdDuplMap  :: M.Map Command Name
                                      , _gsdCommands :: DL.DList Command
                                      }
 
 instance Default GraphStateData where
-  def = GraphStateData def defDList where defDList = DL.empty
+  def = GraphStateData def def defDList where defDList = DL.empty
 
 mkLabels [''GraphStateData]
 
@@ -83,3 +86,41 @@ newName = Name . ("v" ++) . show <$> getM gsdCounter <* modM gsdCounter (+1)
 -- | Add a 'Command' to the resulting list of commands.
 addCommand :: Command -> GraphState ()
 addCommand = modM gsdCommands . flip DL.snoc
+
+-- | Given a 'Command' that defines an RRDtool variable, look up whether it has
+-- already been added. If it’s a duplicate, change nothing and result in the
+-- previously allocated name. If it’s a new command, allocate a new name, add
+-- the command with the name and result in the name.
+addCommandDef :: Command -> GraphState Name
+addCommandDef cmd_ =
+  case cmd_ of
+    DataCommand {} -> addCommandDef' cmd_
+    CDefCommand {} -> addCommandDef' cmd_
+    VDefCommand {} -> addCommandDef' cmd_
+    GraphCommand {} ->
+      error "addCommandDef only applies to commands with cmdDefines"
+
+  where
+    addCommandDef' :: Command -> GraphState Name
+    addCommandDef' cmd = do
+      let cmd' = setL cmdDefines (Name "") cmd
+      maybeName <- lookupDuplMap cmd'
+      case maybeName of
+        Just name -> return name
+        Nothing   -> do
+          name <- newName
+          insertDuplMap cmd' name
+          addCommand $ setL cmdDefines name cmd'
+          return name
+
+    lookupDuplMap :: Command -> GraphState (Maybe Name)
+    lookupDuplMap name = M.lookup name <$> getM gsdDuplMap
+
+    insertDuplMap :: Command -> Name -> GraphState ()
+    insertDuplMap = modM gsdDuplMap .: M.insert
+
+-- Helpers.
+
+infixr 9 .:
+(.:) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
+(.:) f g a b = f (g a b)

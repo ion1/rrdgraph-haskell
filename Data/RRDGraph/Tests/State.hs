@@ -27,6 +27,8 @@ import Data.RRDGraph.State
 import Data.RRDGraph.Tests.Command
 
 import Control.Monad
+import Data.Function
+import Data.Record.Label
 import qualified Data.Set as S
 
 import Test.Framework (Test)
@@ -63,3 +65,23 @@ prop_addCommand :: [TCommand] -> Bool
 prop_addCommand cmds =
   let cmds' = map fromTCommand . take 3 $ cmds
   in  runGraphRaw (mapM_ addCommand cmds') == cmds'
+
+prop_addCommandDef_duplicates :: TCommand -> Property
+prop_addCommandDef_duplicates (TCommand cmd) = applies_addCommandDef cmd ==>
+  let names = evalGraphState (replicateM 2 (addCommandDef cmd))
+  in  printTestCase ("Got names: " ++ show (map fromName names))
+        $ length names == 2 && (S.size . S.fromList) names == 1
+
+prop_addCommandDef_commands :: TCommand -> Property
+prop_addCommandDef_commands (TCommand cmd) = applies_addCommandDef cmd ==>
+  let cmds = runGraphRaw (replicateM 2 (addCommandDef cmd))
+  in  printTestCase ("Got cmds: " ++ show cmds)
+        $ length cmds == 1 && cmd `eqCmd` (head cmds)
+  where
+    eqCmd = (==) `on` setL cmdDefines (Name "@")
+
+applies_addCommandDef :: Command -> Bool
+applies_addCommandDef (DataCommand {})  = True
+applies_addCommandDef (CDefCommand {})  = True
+applies_addCommandDef (VDefCommand {})  = True
+applies_addCommandDef (GraphCommand {}) = False
