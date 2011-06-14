@@ -61,13 +61,14 @@ instance Arbitrary TCommand where
       arbDefines = fromTName <$> arbitrary
 
       arbText :: Gen String
-      arbText = fromNonEmpty <$> arbitrary
+      arbText = take 1000 . fromNonEmpty <$> arbitrary
 
       arbStack :: Gen [String]
-      arbStack = map (fromName . fromTName) . fromNonEmpty <$> arbitrary
+      arbStack  =  take 20 . map (fromName . fromTName) . fromNonEmpty
+               <$> arbitrary
 
       arbReferences :: Gen (S.Set Name)
-      arbReferences = S.fromList . map fromTName <$> arbitrary
+      arbReferences = S.fromList . take 20 . map fromTName <$> arbitrary
 
   shrink (TCommand cmd) =
     map TCommand $ case cmd of
