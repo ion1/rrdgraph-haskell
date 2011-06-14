@@ -18,6 +18,7 @@ Flag tests
 
 Library
   Exposed-Modules:  Data.RRDGraph.Command,
+                    Data.RRDGraph.Fields,
                     Data.RRDGraph.State
 
   Build-Depends:    base == 4.*,
@@ -29,6 +30,7 @@ Library
 
   if flag(tests)
     Exposed-Modules:  Data.RRDGraph.Tests.Command,
+                      Data.RRDGraph.Tests.Fields,
                       Data.RRDGraph.Tests.State
 
     Build-Depends:    HUnit == 1.2.*,
