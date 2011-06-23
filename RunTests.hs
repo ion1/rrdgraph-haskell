@@ -23,6 +23,7 @@ import Data.RRDGraph.Tests.CDef (tests_CDef)
 --import Data.RRDGraph.Tests.Fields (tests_Fields)
 import Data.RRDGraph.Tests.Internal (tests_Internal)
 --import Data.RRDGraph.Tests.State (tests_State)
+import Data.RRDGraph.Tests.VDef (tests_VDef)
 
 import Test.Framework (defaultMain)
 
@@ -32,4 +33,5 @@ main = defaultMain [ tests_CDef
                    -- , tests_Fields
                    , tests_Internal
                    -- , tests_State
+                   , tests_VDef
                    ]
