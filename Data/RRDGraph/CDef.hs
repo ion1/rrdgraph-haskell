@@ -17,16 +17,14 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 -}
 
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Data.RRDGraph.CDef
-( CDef (..)
-
-, CDefOp0 (..)
-, CDefOp1 (..)
-, CDefOp2 (..)
-, CDefOp3 (..)
-
+( CDefNum
+, CDef (..)
 , CF (..)
+, StackItem (..)
 
 , dataFilename
 , dataDSName
@@ -69,75 +67,66 @@ module Data.RRDGraph.CDef
 , cAvg
 , cTrend
 , cTrendNAN
-, cPredict
-, cPredictSigma
-, cPredictShiftMultiplier
-, cPredictSigmaShiftMultiplier
 , cUnkn
 , cInf
 , cNegInf
+, cNow
 , cPrev
 , cCount
-, cNow
 , cTime
 , cLTime
+, cPredict
+, cPredictSigma
+, cPredict'
+, cPredictSigma'
+
 , cSignum
 , cDerivative
 )
 where
 
-import Prelude hiding (LT, EQ, GT)
-
+import Data.List
 import Data.Record.Label
+import Data.String
 
--- Missing: SORT, REV, DUP, POP, EXC (direct stack modification)
+type CDefNum = Double
 
-data CDef = Constant Rational
+-- | A representation of DEF and CDEF.
+data CDef = Constant CDefNum
           | Data { _dataFilename  :: String
                  , _dataDSName    :: String
                  , _dataCF        :: CF
-                 , _dataStepSizeM :: Maybe Rational
-                 , _dataStartM    :: Maybe Rational
-                 , _dataEndM      :: Maybe Rational
+                 , _dataStepSizeM :: Maybe CDefNum
+                 , _dataStartM    :: Maybe CDefNum
+                 , _dataEndM      :: Maybe CDefNum
                  , _dataReduceM   :: Maybe CF
                  }
-          | COp0 CDefOp0
-          | COp1 CDefOp1 CDef
-          | COp2 CDefOp2 CDef CDef
-          | COp3 CDefOp3 CDef CDef CDef
-          | Avg [CDef]
-          | Predict [CDef] CDef CDef
-          | PredictSigma [CDef] CDef CDef
-          | PredictShiftMultiplier CDef CDef CDef CDef
-          | PredictSigmaShiftMultiplier CDef CDef CDef CDef
-  deriving (Eq, Read, Show)
+          | CDefStack [CDef] [StackItem]
+  deriving (Eq, Ord, Read, Show)
+
+-- Consolidation Function
+data CF = CFAverage | CFMin | CFMax | CFLast
+  deriving (Eq, Ord, Read, Show)
+
+-- | An RPN stack item.
+newtype StackItem = StackItem { fromStackItem :: String }
+  deriving (Eq, Ord, Read, Show, IsString)
+
+mkLabels [''CDef]
 
 instance Num CDef where
-  (+) = defOper2 (+) cAdd
-  (*) = defOper2 (*) cMul
-  (-) = defOper2 (-) cSub
-  abs = defOper1 abs cAbs
-  signum = defOper1 signum cSignum
+  (+) = cAdd
+  (*) = cMul
+  (-) = cSub
+  abs = cAbs
+  signum = cSignum
   fromInteger = Constant . fromInteger
 
 instance Fractional CDef where
-  (/) = defOper2 (/) cDiv
+  (/) = cDiv
   fromRational = Constant . fromRational
 
-data CDefOp0 = Unkn | Inf | NegInf | Now
-  deriving (Eq, Read, Show)
-
-data CDefOp1 = Un | IsInf | Sin | Cos | Log | Exp | Sqrt | Atan | Floor | Ceil
-             | Deg2Rad | Rad2Deg | Abs | Prev | Count | Time | LTime
-  deriving (Eq, Read, Show)
-
-data CDefOp2 = LT | LE | GT | GE | EQ | NE | Min | Max | Add | Sub | Mul | Div
-             | Mod | AddNAN | Atan2 | Trend | TrendNAN
-  deriving (Eq, Read, Show)
-
-data CDefOp3 = If | Limit
-  deriving (Eq, Read, Show)
-
+-- Missing: SORT, REV, DUP, POP, EXC (direct stack modification)
 
 cLT       :: CDef -> CDef -> CDef
 cLE       :: CDef -> CDef -> CDef
@@ -169,74 +158,85 @@ cCeil     :: CDef -> CDef
 cDeg2Rad  :: CDef -> CDef
 cRad2Deg  :: CDef -> CDef
 cAbs      :: CDef -> CDef
-cAvg      :: [CDef] -> CDef
 cTrend    :: CDef -> CDef -> CDef
 cTrendNAN :: CDef -> CDef -> CDef
+cUnkn     :: CDef
+cInf      :: CDef
+cNegInf   :: CDef
+cNow      :: CDef
+cPrev     :: CDef -> CDef
+cCount    :: CDef -> CDef
+cTime     :: CDef -> CDef
+cLTime    :: CDef -> CDef
+cAvg      :: [CDef] -> CDef
 
-cPredict                     :: [CDef] -> CDef -> CDef -> CDef
-cPredictSigma                :: [CDef] -> CDef -> CDef -> CDef
-cPredictShiftMultiplier      :: CDef -> CDef -> CDef -> CDef -> CDef
-cPredictSigmaShiftMultiplier :: CDef -> CDef -> CDef -> CDef -> CDef
+cPredict       :: [CDef] -> CDef -> CDef -> CDef
+cPredictSigma  :: [CDef] -> CDef -> CDef -> CDef
+cPredict'      :: CDef -> CDef -> CDef -> CDef -> CDef
+cPredictSigma' :: CDef -> CDef -> CDef -> CDef -> CDef
 
-cUnkn   :: CDef
-cInf    :: CDef
-cNegInf :: CDef
-cPrev   :: CDef -> CDef
-cCount  :: CDef -> CDef
-cNow    :: CDef
-cTime   :: CDef -> CDef
-cLTime  :: CDef -> CDef
+cLT       a b   = boolOp  (<)     a b   $ CDefStack [a, b]    ["LT"]
+cLE       a b   = boolOp  (<=)    a b   $ CDefStack [a, b]    ["LE"]
+cGT       a b   = boolOp  (>)     a b   $ CDefStack [a, b]    ["GT"]
+cGE       a b   = boolOp  (>=)    a b   $ CDefStack [a, b]    ["GE"]
+cEQ       a b   = boolOp  (==)    a b   $ CDefStack [a, b]    ["EQ"]
+cNE       a b   = boolOp  (/=)    a b   $ CDefStack [a, b]    ["NE"]
+cUn       a     =                         CDefStack [a]       ["UN"]
+cIsInf    a     =                         CDefStack [a]       ["ISINF"]
+cIf       a b c =                         CDefStack [a, b, c] ["IF"]
+cMin      a b   = numOp2  min     a b   $ CDefStack [a, b]    ["MIN"]
+cMax      a b   = numOp2  max     a b   $ CDefStack [a, b]    ["MAX"]
+cLimit    a b c =                         CDefStack [a, b, c] ["LIMIT"]
+cAdd      a b   = numOp2  (+)     a b   $ CDefStack [a, b]    ["+"]
+cSub      a b   = numOp2  (-)     a b   $ CDefStack [a, b]    ["-"]
+cMul      a b   = numOp2  (*)     a b   $ CDefStack [a, b]    ["*"]
+cDiv      a b   = numOp2  (/)     a b   $ CDefStack [a, b]    ["/"]
+cMod      a b   =                         CDefStack [a, b]    ["%"]
+cAddNAN   a b   =                         CDefStack [a, b]    ["ADDNAN"]
+cSin      a     = numOp1  sin     a     $ CDefStack [a]       ["SIN"]
+cCos      a     = numOp1  cos     a     $ CDefStack [a]       ["COS"]
+cLog      a     = numOp1  log     a     $ CDefStack [a]       ["LOG"]
+cExp      a     = numOp1  exp     a     $ CDefStack [a]       ["EXP"]
+cSqrt     a     = numOp1  sqrt    a     $ CDefStack [a]       ["SQRT"]
+cAtan     a     = numOp1  atan    a     $ CDefStack [a]       ["ATAN"]
+cAtan2    a b   = numOp2  atan2   a b   $ CDefStack [a, b]    ["ATAN2"]
+cFloor    a     = numOp1  f       a     $ CDefStack [a]       ["FLOOR"]
+  where f = fromInteger . floor
+cCeil     a     = numOp1  f       a     $ CDefStack [a]       ["CEIL"]
+  where f = fromInteger . ceiling
+cDeg2Rad  a     = numOp1  fromDeg a     $ CDefStack [a]       ["DEG2RAD"]
+  where fromDeg = (*) (pi/180)
+cRad2Deg  a     = numOp1  toDeg   a     $ CDefStack [a]       ["RAD2DEG"]
+  where toDeg   = (*) (180/pi)
+cAbs      a     = numOp1  abs     a     $ CDefStack [a]       ["ABS"]
+cTrend    a b   =                         CDefStack [a, b]    ["TREND"]
+cTrendNAN a b   =                         CDefStack [a, b]    ["TRENDNAN"]
+cUnkn           =                         CDefStack []        ["UNKN"]
+cInf            =                         CDefStack []        ["INF"]
+cNegInf         =                         CDefStack []        ["NEGINF"]
+cNow            =                         CDefStack []        ["NOW"]
 
-cLT       = COp2 LT
-cLE       = COp2 LE
-cGT       = COp2 GT
-cGE       = COp2 GE
-cEQ       = COp2 EQ
-cNE       = COp2 NE
-cUn       = COp1 Un
-cIsInf    = COp1 IsInf
-cIf       = COp3 If
-cMin      = COp2 Min
-cMax      = COp2 Max
-cLimit    = COp3 Limit
-cAdd      = COp2 Add
-cSub      = COp2 Sub
-cMul      = COp2 Mul
-cDiv      = COp2 Div
-cMod      = COp2 Mod
-cAddNAN   = COp2 AddNAN
-cSin      = COp1 Sin
-cCos      = COp1 Cos
-cLog      = COp1 Log
-cExp      = COp1 Exp
-cSqrt     = COp1 Sqrt
-cAtan     = COp1 Atan
-cAtan2    = COp2 Atan2
-cFloor    = COp1 Floor
-cCeil     = COp1 Ceil
-cDeg2Rad  = COp1 Deg2Rad
-cRad2Deg  = COp1 Rad2Deg
-cAbs      = COp1 Abs
-cAvg      = Avg
-cTrend    = COp2 Trend
-cTrendNAN = COp2 TrendNAN
+cAvg      xs    = CDefStack (xs ++ [genericLength xs]) ["AVG"]
 
-cPredict                     = Predict
-cPredictSigma                = PredictSigma
-cPredictShiftMultiplier      = PredictShiftMultiplier
-cPredictSigmaShiftMultiplier = PredictSigmaShiftMultiplier
+-- These refer to the “current” value, which means the last one that was pushed
+-- to the stack. Push a value and then immediately pop it before using these
+-- instructions.
+cPrev     a     = CDefStack [a] ["POP", "PREV"]
+cCount    a     = CDefStack [a] ["POP", "COUNT"]
+cTime     a     = CDefStack [a] ["POP", "TIME"]
+cLTime    a     = CDefStack [a] ["POP", "LTIME"]
 
-cUnkn   = COp0 Unkn
-cInf    = COp0 Inf
-cNegInf = COp0 NegInf
-cPrev   = COp1 Prev
-cCount  = COp1 Count
-cNow    = COp0 Now
-cTime   = COp1 Time
-cLTime  = COp1 LTime
+cPredict       shifts win a =
+  CDefStack (shifts ++ [genericLength shifts, win, a]) ["PREDICT"]
+cPredictSigma  shifts win a =
+  CDefStack (shifts ++ [genericLength shifts, win, a]) ["PREDICTSIGMA"]
+cPredict'      shiftMul numShifts win a =
+  CDefStack [shiftMul, negate numShifts, win, a] ["PREDICT"]
+cPredictSigma' shiftMul numShifts win a =
+  CDefStack [shiftMul, negate numShifts, win, a] ["PREDICTSIGMA"]
 
 cSignum :: CDef -> CDef
-cSignum x = cIf (x `cLT` 0) (-1) $ cIf (x `cEQ` 0) 0 1
+cSignum x = numOp1 signum x $ cIf (x `cLT` 0) (-1) $ cIf (x `cEQ` 0) 0 1
 
 cDerivative :: CDef -> CDef
 cDerivative a =
@@ -245,22 +245,16 @@ cDerivative a =
       t  = cTime a
   in  da / dt
 
--- Helpers for the Num CDef instance definitions.
+-- Helpers.
 
-defOper1 :: (Rational -> Rational)
-         -> (CDef -> CDef)
-         -> CDef -> CDef
-defOper1 opN _   (Constant a) = Constant (opN a)
-defOper1 _   opD a            = opD a
+boolOp :: (CDefNum -> CDefNum -> Bool) -> CDef -> CDef -> CDef -> CDef
+boolOp op (Constant a) (Constant b) _    = Constant (if op a b then 1 else 0)
+boolOp _  _            _            cDef = cDef
 
-defOper2 :: (Rational -> Rational -> Rational)
-         -> (CDef -> CDef -> CDef)
-         -> CDef -> CDef -> CDef
-defOper2 opN _   (Constant a) (Constant b) = Constant (opN a b)
-defOper2 _   opD a            b            = opD a b
+numOp1 :: (CDefNum -> CDefNum) -> CDef -> CDef -> CDef
+numOp1 op (Constant a) _    = Constant (op a)
+numOp1 _  _            cDef = cDef
 
--- Consolidation Function
-data CF = CFAverage | CFMin | CFMax | CFLast
-  deriving (Eq, Read, Show)
-
-mkLabels [''CDef]
+numOp2 :: (CDefNum -> CDefNum -> CDefNum) -> CDef -> CDef -> CDef -> CDef
+numOp2 op (Constant a) (Constant b) _    = Constant (op a b)
+numOp2 _  _            _            cDef = cDef

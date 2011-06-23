@@ -18,10 +18,10 @@ Flag tests
 
 Library
   Exposed-Modules:  Data.RRDGraph.CDef,
-                    Data.RRDGraph.Command,
-                    Data.RRDGraph.Fields,
-                    Data.RRDGraph.Internal,
-                    Data.RRDGraph.State
+                    -- Data.RRDGraph.Command,
+                    -- Data.RRDGraph.Fields,
+                    Data.RRDGraph.Internal
+                    -- Data.RRDGraph.State
 
   Build-Depends:    base == 4.*,
                     containers >= 0.3 && < 0.5,
@@ -33,10 +33,10 @@ Library
 
   if flag(tests)
     Exposed-Modules:  Data.RRDGraph.Tests.CDef,
-                      Data.RRDGraph.Tests.Command,
-                      Data.RRDGraph.Tests.Fields,
-                      Data.RRDGraph.Tests.Internal,
-                      Data.RRDGraph.Tests.State
+                      -- Data.RRDGraph.Tests.Command,
+                      -- Data.RRDGraph.Tests.Fields,
+                      Data.RRDGraph.Tests.Internal
+                      -- Data.RRDGraph.Tests.State
 
     Build-Depends:    HUnit == 1.2.*,
                       QuickCheck == 2.4.*,
